@@ -69,6 +69,78 @@ long Delta           = 30; // ESP32 rtc speed compensation, prevents display at 
 GFXfont  currentFont;
 uint8_t *framebuffer;
 
+const bool debug_mode = true;
+
+// some prototypes needed for C++ files
+boolean UpdateLocalTime();
+bool obtainWeatherData(WiFiClient & client, const String & RequestType);
+void DisplayWeather();
+void DisplayGeneralInfoSection();
+void DisplayWeatherIcon(int x, int y);
+void DisplayMainWeatherSection(int x, int y);
+void DisplayDisplayWindSection(int x, int y, float angle, float windspeed, int Cradius);
+String WindDegToOrdinalDirection(float winddirection);
+void DisplayTempHumiPressSection(int x, int y);
+void DisplayStatusSection(int x, int y, int rssi);
+void DisplayAstronomySection(int x, int y);
+void DisplayForecastSection(int x, int y);
+void DisplayGraphSection(int x, int y);
+void DisplayForecastSection(int x, int y);
+void DisplayConditionsSection(int x, int y, String IconName, bool IconSize);
+void DisplayForecastTextSection(int x, int y);
+void DisplayVisiCCoverUVISection(int x, int y);
+void Display_UVIndexLevel(int x, int y, float UVI);
+void DisplayForecastWeather(int x, int y, int index, int fwidth);
+double NormalizedMoonPhase(int d, int m, int y);
+void DisplayAstronomySection(int x, int y);
+void DrawMoon(int x, int y, int diameter, int dd, int mm, int yy, String hemisphere);
+String MoonPhase(int d, int m, int y, String hemisphere);
+
+void DrawPressureAndTrend(int x, int y, float pressure, String slope);
+void DrawRSSI(int x, int y, int rssi);
+void DrawBattery(int x, int y);
+void DrawMoonImage(int x, int y);
+void DrawSunriseImage(int x, int y);
+void DrawSunsetImage(int x, int y);
+void DrawUVI(int x, int y);
+
+void ClearSky(int x, int y, bool IconSize, String IconName);
+void BrokenClouds(int x, int y, bool IconSize, String IconName);
+void FewClouds(int x, int y, bool IconSize, String IconName);
+void ScatteredClouds(int x, int y, bool IconSize, String IconName);
+void Rain(int x, int y, bool IconSize, String IconName);
+void ChanceRain(int x, int y, bool IconSize, String IconName);
+void Thunderstorms(int x, int y, bool IconSize, String IconName);
+void Snow(int x, int y, bool IconSize, String IconName);
+void Mist(int x, int y, bool IconSize, String IconName);
+void CloudCover(int x, int y, int CloudCover);
+void Visibility(int x, int y, String Visibility);
+void addmoon(int x, int y, bool IconSize);
+void Nodata(int x, int y, bool IconSize, String IconName);
+
+float mm_to_inches(float value_mm);
+float hPa_to_inHg(float value_hPa);
+
+void edp_update();
+void arrow(int x, int y, int asize, float aangle, int pwidth, int plength);
+void fillCircle(int x, int y, int r, uint8_t color);
+void drawFastHLine(int16_t x0, int16_t y0, int length, uint16_t color);
+void drawFastVLine(int16_t x0, int16_t y0, int length, uint16_t color);
+void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
+void drawCircle(int x0, int y0, int r, uint8_t color);
+void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
+                  int16_t x2, int16_t y2, uint16_t color);
+void drawPixel(int x, int y, uint8_t color);
+void DrawGraph(int x_pos, int y_pos, int gwidth, int gheight, float Y1Min, float Y1Max, 
+               String title, float DataArray[], int readings, boolean auto_scale, boolean barchart_mode);
+void DrawAngledLine(int x, int y, int x1, int y1, int size, int color);
+void drawString(int x, int y, String text, alignment align);
+void setFont(GFXfont const & font);
+                  
+
+
 void BeginSleep() {
   epd_poweroff_all();
   UpdateLocalTime();
@@ -88,23 +160,57 @@ boolean SetupTime() {
   return UpdateLocalTime();
 }
 
-uint8_t StartWiFi() {
-  Serial.println("\r\nConnecting to: " + String(ssid));
-  IPAddress dns(8, 8, 8, 8); // Use Google DNS
-  WiFi.disconnect();
+wl_status_t StartWiFi() {
+  Serial.println("\r\nDisconnecting ... ");
+  WiFi.disconnect(true);
+  delay(3000);
   WiFi.mode(WIFI_STA); // switch off AP
-  WiFi.setAutoConnect(true);
+  WiFi.disconnect(true);
+  delay(1000);
+
+  /*   // some more debug code - list known SSIDs
+  Serial.println("scan start");
+  // WiFi.scanNetworks will return the number of networks found
+  int n = WiFi.scanNetworks();
+  Serial.println("scan done");
+  if (n == 0) {
+      Serial.println("no networks found");
+  } else {
+    Serial.print(n);
+    Serial.println(" networks found");
+    for (int i = 0; i < n; ++i) {
+      // Print SSID and RSSI for each network found
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.print(WiFi.SSID(i));
+      Serial.print(" (");
+      Serial.print(WiFi.RSSI(i));
+      Serial.print(")");
+      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
+      delay(10);
+    }
+  }
+  Serial.println("scan complete\r\n");
+  delay(1000); */
+
   WiFi.setAutoReconnect(true);
   WiFi.begin(ssid, password);
+  Serial.println("\r\nConnecting to: " + String(ssid));
+  delay(3000);
   if (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.printf("STA: Failed!\n");
-    WiFi.disconnect(false);
+    WiFi.disconnect(true);
     delay(500);
     WiFi.begin(ssid, password);
+    delay(3000);
+    WiFi.waitForConnectResult();
   }
   if (WiFi.status() == WL_CONNECTED) {
     wifi_signal = WiFi.RSSI(); // Get Wifi Signal strength now, because the WiFi will be turned off to save power!
     Serial.println("WiFi connected at: " + WiFi.localIP().toString());
+    Serial.println("  Broadcast IP at: " + WiFi.broadcastIP().toString());
+    Serial.println("           DNS at: " + WiFi.dnsIP().toString());
+    //WiFi.printDiag(Serial);
   }
   else {
     wifi_signal = 0;
@@ -136,12 +242,21 @@ void loop() {
 
 void setup() {
   InitialiseSystem();
-  if (StartWiFi() == WL_CONNECTED && SetupTime() == true) {
+  boolean bWifiConnected = (StartWiFi() == WL_CONNECTED ? true : false);
+  boolean bTimeUpdated = SetupTime();
+  if (debug_mode) Serial.println("Wifi Time done");
+
+  if (bWifiConnected && bTimeUpdated) {
     bool WakeUp = false;
     if (WakeupHour > SleepHour)
       WakeUp = (CurrentHour >= WakeupHour || CurrentHour <= SleepHour);
     else
       WakeUp = (CurrentHour >= WakeupHour && CurrentHour <= SleepHour);
+    if (debug_mode) {
+      Serial.print("DEBUG: WakeUp Mode = ");
+      Serial.println(WakeUp);
+      WakeUp = true;
+    }
     if (WakeUp) {
       byte Attempts = 1;
       bool RxWeather  = false;
@@ -169,7 +284,7 @@ void setup() {
     edp_update();       // Update the display to show the information
     epd_poweroff_all(); // Switch off all power to EPD
   }
-  BeginSleep();
+  //FrankDebug BeginSleep();
 }
 
 void Convert_Readings_to_Imperial() { // Only the first 3-hours are used
@@ -270,6 +385,11 @@ bool obtainWeatherData(WiFiClient & client, const String & RequestType) {
   if (RequestType == "onecall") uri += "&exclude=minutely,hourly,alerts,daily";
   http.begin(client, server, 80, uri); //http.begin(uri,test_root_ca); //HTTPS example connection
   int httpCode = http.GET();
+  if (debug_mode) {
+      Serial.println("DEBUG: Server   = %s" + String(server));
+      Serial.println("DEBUG: Uri      = %s" + String(uri));
+      Serial.println("DEBUG: httpCode = %d" + String(httpCode));
+  }  
   if (httpCode == HTTP_CODE_OK) {
     if (!DecodeWeather(http.getStream(), RequestType)) return false;
     client.stop();

@@ -1,17 +1,19 @@
 // Change to your WiFi credentials
-const char* ssid     = "SSID";
-const char* password = "Password";
+//const char* ssid     = "SSID";
+//const char* password = "Password";
+const char* ssid     = "Knarf 39 Heslach";
+const char* password = "6E6HoxRJnZgjUpjd0yMilBJQ89PdBvmK";
 
 // Use your own API key by signing up for a free developer account at https://openweathermap.org/
-String apikey       = "APKIKEY";
+String apikey       = "4710d904b8503fe4e0933c2735e393a4";
 const char server[] = "api.openweathermap.org";
 //http://api.openweathermap.org/data/2.5/forecast?q=Melksham,UK&APPID=your_OWM_API_key&mode=json&units=metric&cnt=40
 //http://api.openweathermap.org/data/2.5/weather?q=Melksham,UK&APPID=your_OWM_API_key&mode=json&units=metric&cnt=1
 
 //Set your location according to OWM locations
-String City             = "Kößlarn,DE";                    // Your home city See: http://bulk.openweathermap.org/sample/
-String Latitude         = "48.374462";                     // Latitude of your location in decimal degrees
-String Longitude        = "13.116431";                     // Longitude of your location in decimal degrees
+String City             = "Stuttgart,DE";                  // Your home city See: http://bulk.openweathermap.org/sample/
+String Latitude         = "48.75797468810914";             // Latitude of your location in decimal degrees
+String Longitude        = "9.151025211570344";             // Longitude of your location in decimal degrees
 String Language         = "de";                            // NOTE: Only the weather description is translated by OWM
                                                            // Examples: German (DE) Arabic (AR) Czech (CZ) English (EN) Greek (EL) Persian(Farsi) (FA) Galician (GL) Hungarian (HU) Japanese (JA)
                                                            // Korean (KR) Latvian (LA) Lithuanian (LT) Macedonian (MK) Slovak (SK) Slovenian (SL) Vietnamese (VI)
